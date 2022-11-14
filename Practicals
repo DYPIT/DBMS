@@ -940,6 +940,23 @@ end;
 a)	Write an SQL code block these raise a user defined exception where business rule is voilated. BR for client_ master table specifies when
 the value of bal_due field is less than 0 handle the exception.
 *******Code*********
+
+delimiter //
+create procedure check_br(in uid int)
+begin
+declare temp_bal int;
+declare sp condition for sqlstate'45000';
+select bal_due into temp_bal from client_master where id=uid;
+if temp_bal<0 then
+signal sqlstate '45000'
+ set message_text='BR violated';
+ else
+ select 'BR not violated' Message;
+ end if;
+ end
+ //
+ 
+ 
 --------------------------------------------------------------------------------------------------------------------------------------------------------------
 b)	Write an SQL code block Borrow(Roll_no, Name, DateofIssue, NameofBook, Status) Fine(Roll_no,Date,Amt) Accept roll_no & name of book from user.
 Check the number of days (from date of issue), if days are between 15 to 30 then fine amount will be Rs 5per day. If no. of days>30, per day fine
@@ -1157,38 +1174,94 @@ end;
 -------------------------------------------------------------------------------------------------------------------------------------------------------------------
 
 17. Cursor (Any Two)
+a) The bank manager has decided to activate all those accounts which were previously marked as 
+inactive for performing no transaction in last 365 days. Write a PL/SQ block (using implicit 
+cursor) to update the status of account, display an approximate message based on the no. of rows 
+affected by the update. (Use of %FOUND, %NOTFOUND, %ROWCOUNT)
+
+  create table Emp(
+e_no int Primary Key,
+d_no int ,
+salary int);
+
+
+
+create table dept_salary(
+d_no int primary key,
+Avg_Salary int);
+
+
+insert into Emp values (1,10,10000),(2,10,30000),(3,20,10400),(4,20,10000),(5,20,3000),(6,30,1500);
+
+DELIMITER $
+create procedure prod()
+BEGIN
+DECLARE TEMP_no int;
+DECLARE EXITCONDITION BOOLEAN;
+DECLARE cur1 cursor for select d_no from Emp;
+DECLARE continue handler for not found set EXITCONDITION = TRUE;
+open cur1;
+L1:Loop
+Fetch cur1 into TEMP_no;
+if not exists (Select * from dept_salary where d_no=TEMP_no) then
+insert into dept_salary select d_no,avg(salary) FROM Emp group by(d_no)
+having( d_no=Temp_no) ;
+END if;
+IF EXITCONDITION THEN
+close cur1;
+LEAVE L1;
+end if;
+end Loop;
+end;
+$
+
+
+call prod;
+select * from dept_salary;
+$
+--------------------------------------------------------------------------------------------------------------------------------------------------------------------
 b)Write a PL/SQL block of code using parameterized Cursor, that will merge the data available in the newly created table N_RollCall with the data available
 in the table O_RollCall. If the data in the first table already exist in the second table then that data should be skipped. output:
 
 *******Code*********
-create table o_rollcall(
-roll_no int,
-name varchar(20)
-);
+create table inactive_mstr(
+    acc_no int primary key,
+    status varchar(30));
 
-create table n_rollcall(
-roll_no int,
-name varchar(20)
-);
+insert into inactive_mstr values(101, 'active');
+insert into inactive_mstr values(102, 'inactive');
+insert into inactive_mstr values(103, 'inactive');
+insert into inactive_mstr values(104, 'active');
+insert into inactive_mstr values(105, 'inactive');
 
-create procedure n4(IN rno1 int)
+
+
+create table new_active(
+    acc_no int primary key,
+    new_status varchar(30));
+
+delimiter $
+create procedure activate()
 begin
-declare rno2 int;
-declare exit_cond boolean;
-declare c1 cursor for select  roll_no from o_rollcall where roll_no>rno1;
-open c1;
-l1:loop
-fetch c1 into rno2;
-if not exists(select * from n_rollcall where roll_no = rno2) then
-insert into n_rollcall select * from o_rollcall where roll_no = rno2;
+declare accno int;
+declare status2 varchar(30);
+declare exitcondition boolean;
+declare cur1 CURSOR for select acc_no, status from inactive_mstr;
+declare continue handler for not found set exitcondition = TRUE;
+open cur1;
+L1: LOOP
+fetch cur1 into accno, status2;
+if status2 = 'inactive' then
+insert into new_active values(accno, status2);
 end if;
-if exit_cond then
-close c1;
-leave l1;
+update new_active set new_status = 'active';
+if exitcondition then
+leave L1;
 end if;
-end loop l1;
+end LOOP;
+close cur1;
 end;
-/
+$
 -------------------------------------------------------------------------------------------------------------------------------------------------------------------
 c)Write the PL/SQL block for following requirements using parameterized Cursor: Consider table EMP(e_no, d_no, Salary), department wise average salary
 should be inserted into new table dept_salary(d_no, Avg_salary)
@@ -1214,7 +1287,7 @@ end;
 18.Trigger a) Write a update, delete trigger on clientmstr table. The System should keep track of the records that ARE BEING updated or deleted. The old value of updated or deleted records should be added in audit_trade table.
 (separate implementation using both row and statement triggers).
 *******Code*********
-create or replace trigger storedata
+create  trigger storedata
 before delete
 on
 clientmstr
@@ -1223,7 +1296,7 @@ begin
 insert into  audit_trade values(old.c_id,c_name);
 end;
 /
-create or replace trigger storedata
+create  trigger storedata
 before update
 on
 clientmstr
@@ -1241,7 +1314,7 @@ than Rs. 50,000/- Action should be rejection of update or Insert operation by di
 nserted will be stored in new table Tracking(e_no, salary).
 
 *******Code**********
-create or replace trigger emp_sal_trigger
+create  trigger emp_sal_trigger
 before insert or update on emp
 for each row
 begin
