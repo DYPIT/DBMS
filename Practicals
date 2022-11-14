@@ -912,18 +912,27 @@ account_master table records the current balance for an account, which is update
 deposits or withdrawals takes place. If the withdrawal attempted is more than the current balance 
 held in the account. The user defined exception is raised, displaying an appropriate message. 
 Write a PL/SQL block for above requirement using user defined exception handling
- Create Procedure proc(roll_no int)
-    -> BEGIN
-    -> DECLARE
-    -> temp int;
-    -> SELECT attendance into temp from STUD where STUD.Roll_no=roll_no;
-    -> if(temp > 75) then
-    -> insert into message values(roll_no,"Term Granted");
-    -> else
-    -> insert into message values(roll_no,"Term not  Granted");
-    -> end if;
-    -> end
-    -> //
+
+create table stud(RollNo int primary key, attendance int,status varchar(5));
+
+insert into stud values(1,150, NULL),(2,200, NULL),(3,80, NULL),(4,70, NULL),(5,180,
+NULL);
+create procedure check_att(in roll int)
+begin
+declare att int;
+declare total int;
+declare exit handler for not found select 'Data not found!!!' message;
+set total=200;
+select attendance into att from stud where RollNo=roll;
+if ((att/total)*100)>=75 then
+update stud set status='ND' where RollNo=roll;
+select 'Term Granted' Message;
+else
+update stud set status='D' where RollNo=roll;
+select 'Term Not Granted' Message;
+end if;
+end;
+
 --------------------------------------------------------------------------------------------------------------------------------------------------------------
 
 --------------------------------------------------------------------------------------------------------------------------------------------------------------
