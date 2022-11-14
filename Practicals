@@ -912,6 +912,8 @@ create table stud(RollNo int primary key, attendance int,status varchar(5));
 
 insert into stud values(1,150, NULL),(2,200, NULL),(3,80, NULL),(4,70, NULL),(5,180,
 NULL);
+
+
 create procedure check_att(in roll int)
 begin
 declare att int;
@@ -928,7 +930,7 @@ select 'Term Not Granted' Message;
 end if;
 end;
 
-
+call check_att(1);
 
 ----------------------------------------------------------------------------------------------------------------------------------------------------------------
 b) Write a PL/SQL block for following requirement using user defined exception handling. The 
@@ -953,21 +955,15 @@ delimiter //
 
 create procedure withdraw(in num int,in amt int)
 begin
-
-	declare curr_bal int;
-    select balance into curr_bal from Account_Master where acc_no = num;
-    
-    if(curr_bal < amt) then
-		select "Current Account Balance Not Sufficient!!! Cannot Proccess Transaction" as "Error";
-	
-    else
-    
-		update Account_Master modify set balance = balance - amt where acc_no = num;
-		select "Transaction Processed Successfully!" as "Message";
-    
+declare curr_bal int;
+select balance into curr_bal from Account_Master where acc_no = num;
+if(curr_bal < amt) then
+select "Current Account Balance Not Sufficient!!! Cannot Proccess Transaction" as "Error";
+else
+ update Account_Master modify set balance = balance - amt where acc_no = num;
+ select "Transaction Processed Successfully!" as "Message";
     end if;
-
-end //
+    end //
 
 delimiter;
 drop procedure withdraw;
@@ -997,6 +993,10 @@ select * from Account_Master;
 a)	Write an SQL code block these raise a user defined exception where business rule is voilated. BR for client_ master table specifies when
 the value of bal_due field is less than 0 handle the exception.
 *******Code*********
+ 
+create table client_master(
+bal_due int
+);
 
 delimiter //
 create procedure check_br(in uid int)
@@ -1006,12 +1006,12 @@ declare sp condition for sqlstate'45000';
 select bal_due into temp_bal from client_master where id=uid;
 if temp_bal<0 then
 signal sqlstate '45000'
- set message_text='BR violated';
- else
- select 'BR not violated' Message;
- end if;
- end
- //
+set message_text='BR violated';
+else
+select 'BR not violated' Message;
+end if;
+end
+//
  
  
 --------------------------------------------------------------------------------------------------------------------------------------------------------------
@@ -1197,7 +1197,7 @@ call increment();
 c)Write PL/SQL block using explicit cursor for following requirements: College has decided to mark all those students detained (D) who are having attendance
 less than 75%. Whenever such update takes place, a record for the same is maintained in the D_Stud table. create table stud21(roll number(4), att number(4),
 status varchar(1))
-*******Code*********
+********Code**********
 
 create table stud1(roll_no number(5),attendance number(5),status varchar(7));
 
@@ -1318,7 +1318,12 @@ end if;
 end LOOP;
 close cur1;
 end;
-$
+
+call activate();
+
+
+select * from N_RollCall;
+
 -------------------------------------------------------------------------------------------------------------------------------------------------------------------
 c)Write the PL/SQL block for following requirements using parameterized Cursor: Consider table EMP(e_no, d_no, Salary), department wise average salary
 should be inserted into new table dept_salary(d_no, Avg_salary)
@@ -1339,6 +1344,8 @@ LOOP
 insert into dept_salary values(data.d_no,data.avgsal);
 end LOOP;
 end;
+
+call avgsal();
 
 -------------------------------------------------------------------------------------------------------------------------------------------------------------------
 18.Trigger a) Write a update, delete trigger on clientmstr table. The System should keep track of the records that ARE BEING updated or deleted. The old value of updated or deleted records should be added in audit_trade table.
@@ -1363,6 +1370,10 @@ insert into  audit_trade values(old.c_id,c_name);
 end;
 /
 
+give  2-3 insert and update quries
+
+select * from audit_trade;
+
 -------------------------------------------------------------------------------------------------------------------------------------------------------------------
 
 b) Write a before trigger for Insert, update event considering following requirement: Emp(e_no, e_name, salary) I) Trigger action should be initiated
@@ -1371,6 +1382,11 @@ than Rs. 50,000/- Action should be rejection of update or Insert operation by di
 nserted will be stored in new table Tracking(e_no, salary).
 
 *******Code**********
+
+create table Emp(e_no int , e_name varchar(20), salary int);
+
+create table Tracking(e_no int , salary int);
+
 create  trigger emp_sal_trigger
 before insert or update on emp
 for each row
@@ -1379,6 +1395,8 @@ if:NEW.salary < 50000 then
 RAISE_APPLICATION_ERROR(-20001,'MINIMUM SALARY SHOULD BE 50000');
 end if;
 end;
+
+give 2-3 insert queries;
 -------------------------------------------------------------------------------------------------------------------------------------------------------------------
 
 19. 
@@ -1873,7 +1891,62 @@ db.games.find( {  }, {achivements :true});
 
 
 -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
-25 
+25.
+use details
+switched to db details
+details> db.createCollection("records")
+{ ok: 1 }
+details> db.records.insert({  id:1,name:"Yash",email:"yash@123",work:"unilogic",age:27,gender:"male",salary:14444,hibbies:"Cricket"})
+DeprecationWarning: Collection.insert() is deprecated. Use insertOne, insertMany, or bulkWrite.
+{
+  acknowledged: true,
+  insertedIds: { '0': ObjectId("637258c9deaac56a01501cf2") }
+}
+details> db.records.insert({  id:1,name:"Sarvesh",email:"sarv@123",work:"logic",age:21,gender:"male",salary:14444,hibbies:"Cricket"})
+{
+  acknowledged: true,
+  insertedIds: { '0': ObjectId("637258f8deaac56a01501cf3") }
+}
+details> db.records.insert({  id:3,name:"Shruti",email:"Shruti@123",work:"logic",age:21,gender:"female",salary:14444,hibbies:"Gaming"})
+{
+  acknowledged: true,
+  insertedIds: { '0': ObjectId("6372592adeaac56a01501cf4") }
+}
+details> db.records.insert({  id:4,name:"Snehal",email:"Snehal@123",work:"ulogic",age:21,gender:"female",salary:14444,hibbies:"Gaming"})
+{
+  acknowledged: true,
+  insertedIds: { '0': ObjectId("63725948deaac56a01501cf5") }
+}
+details> db.records.mapReduce(
+... function()
+... { emit(this.gender,1);},
+... function(key,values)
+... {return Array.sum(values)}, {out:"genders"}
+... )
+DeprecationWarning: Collection.mapReduce() is deprecated. Use an aggregation instead.
+See https://docs.mongodb.com/manual/core/map-reduce for details.
+{ result: 'genders', ok: 1 }
+details> db.genders.find()
+[ { _id: 'male', value: 2 }, { _id: 'female', value: 2 } ]
+details>
+
+details>
+
+details> db.records.mapReduce(
+... function()
+... {emit(this.hibbies,1);},
+... function(key,values)
+... {
+... return Array.sum(values)},
+... {out:"hobbie"})
+{ result: 'hobbie', ok: 1 }
+details> db.hobbie.find()
+[ { _id: 'Cricket', value: 2 }, { _id: 'Gaming', value: 2 } ]
+details>
+
+
+
+
 
 
 
