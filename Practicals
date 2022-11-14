@@ -1025,6 +1025,26 @@ then details will be stored into fine table. Also handles the exception by named
 *******Code*********
 _
 First Create Both the tables Borrower and Fine and Insert values in Borrower
+delimiter //
+
+create table Borrower (
+     Roll_no int,
+     name varchar(20),
+     DOI date,
+     NameofBook varchar(20),
+     Status varchar(2)
+     )//
+     
+     create table fine(
+     Roll_no int,
+     name varchar(20),
+     fine int
+     )//
+
+insert into Borrower values(1,'Sanket','2022-09-14','DSA',"NR")//
+
+insert into Borrower values(2,'ADitya','2022-09-27','C++',"NR")//
+
 
 Create procedure calcfine6(rno  int,bname varchar(20))
 begin
@@ -1032,7 +1052,6 @@ declare fine int default 0;
 declare days int default 0;
 declare issuedate date;
 declare namee varchar(20);
-declare exit handler for SQLEXCEPTION select 'create table definition';
 Select name  into namee from Borrower where Roll_no = rno;
 Select DOI into issuedate from Borrower where Roll_no = rno  AND  NameofBook = bname;
 Set days = datediff(now(),issuedate);
@@ -1048,6 +1067,11 @@ End if;
 Update Borrower set Status = 'R' where Roll_no = rno AND NameofBook = bname;
 End
 //_
+
+
+call calcfine55(1,'DSA')//
+
+select * from fine//
 
 ********************
 -------------------------------------------------------------------------------------------------------------------------------------------------------------------
