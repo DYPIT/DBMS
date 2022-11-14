@@ -907,11 +907,6 @@ will be entered by user. Attendance of roll no. entered by user will be checked 
 attendance is less than 75% then display the message “Term not granted” and set the status in 
 stud table as “D”. Otherwise display message “Term granted” and set the status in stud table as 
 “ND”
-b) Write a PL/SQL block for following requirement using user defined exception handling. The 
-account_master table records the current balance for an account, which is updated whenever, any 
-deposits or withdrawals takes place. If the withdrawal attempted is more than the current balance 
-held in the account. The user defined exception is raised, displaying an appropriate message. 
-Write a PL/SQL block for above requirement using user defined exception handling
 
 create table stud(RollNo int primary key, attendance int,status varchar(5));
 
@@ -933,8 +928,70 @@ select 'Term Not Granted' Message;
 end if;
 end;
 
---------------------------------------------------------------------------------------------------------------------------------------------------------------
 
+
+----------------------------------------------------------------------------------------------------------------------------------------------------------------
+b) Write a PL/SQL block for following requirement using user defined exception handling. The 
+account_master table records the current balance for an account, which is updated whenever, any 
+deposits or withdrawals takes place. If the withdrawal attempted is more than the current balance 
+held in the account. The user defined exception is raised, displaying an appropriate message. 
+Write a PL/SQL block for above requirement using user defined exception handling
+
+
+
+
+create table Account_Master (
+	acc_no int primary key,
+    name varchar(55),
+    balance bigint default 0
+);
+
+delimiter ;
+insert into Account_Master values (001,"Yash Ambekar",200),(002,"Teja Bhandvalkar",1000),(003,"Swami Ji",2000),(004,"Krishna",200);
+
+delimiter //
+
+create procedure withdraw(in num int,in amt int)
+begin
+
+	declare curr_bal int;
+    select balance into curr_bal from Account_Master where acc_no = num;
+    
+    if(curr_bal < amt) then
+		select "Current Account Balance Not Sufficient!!! Cannot Proccess Transaction" as "Error";
+	
+    else
+    
+		update Account_Master modify set balance = balance - amt where acc_no = num;
+		select "Transaction Processed Successfully!" as "Message";
+    
+    end if;
+
+end //
+
+delimiter;
+drop procedure withdraw;
+drop procedure deposit;
+
+delimiter //
+create procedure deposit(in num int,in amt int)
+begin
+
+		update Account_Master modify set balance = balance + amt where acc_no = num;
+		select "Transaction Processed Successfully!" as "Message";
+
+end
+
+delimiter ;
+call deposit(001,1000);
+call deposit(002,1000);
+call deposit(003,1000);
+
+call withdraw(004,500);
+call withdraw(001,1200);
+call withdraw(002,1500);
+
+select * from Account_Master;
 --------------------------------------------------------------------------------------------------------------------------------------------------------------
 15.
 a)	Write an SQL code block these raise a user defined exception where business rule is voilated. BR for client_ master table specifies when
