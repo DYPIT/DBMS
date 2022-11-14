@@ -639,7 +639,9 @@ d. Find the number of depositors in the bank
 from depositor
 
 e. Calculate Min,Max amount of customers.
--> 
+-> select MIN(amount) from Deposit;
+   select MAX(amount) from Deposit;
+   
 f. Create an index on deposit table
 -> CREATE INDEX index_customer_branch ON deposit (cname,bname);  
 
