@@ -998,6 +998,50 @@ Rows_affe=(SQL%rowcount);
 dbms_output.put_line(Rows_affe || ' rows areaffected...');
 END;
 /
+___________________________________________USING EXPLICIT CURSOR_________________________________________________________
+create table Account(
+	acc_no int primary key,
+    name varchar(30),
+    status varchar(15)
+);
+
+insert into Account values (001,"Yash","Active"),(002,"Krishna","Inactive"),(003,"Teja","Inactive"),(004,"Satyam","Active");
+
+delimiter //
+
+create procedure change_status()
+
+begin
+
+declare rows_affected int;
+declare ct int;
+declare Acc int;
+declare c1 cursor for select acc_no from Account where status = "Inactive"; 
+
+select count(acc_no) into ct from Account where status = "Inactive";
+set rows_affected = ct;
+open c1;
+
+main : loop 
+
+	fetch c1 into Acc;
+    update Account modify set status="Active";
+    set ct = ct-1;
+    if(ct=0) then leave main;
+    else iterate main;
+    end if;
+
+end loop main;
+
+close c1;
+select rows_affected as "Number of Rows updated";
+
+end //
+
+select * from Account;
+select row_count();
+set sql_safe_updates = 0;
+call change_status();
 -------------------------------------------------------------------------------------------------------------------------------------------------------------------
 
 
@@ -1006,40 +1050,74 @@ Whenever such salary updates takes place, a record for the same is maintained in
 
 *******Code*********
 
-Create table employee(e_id int,salary int);
-
-insert into employee values(1,10000);
-insert into employee values(2,11000);
-insert into employee values(3,12500);
-insert into employee values(4,9000);
-insert into employee values(5,10000);
-insert into employee values(6,7000);
-insert into employee values(7,12000);
-
-create table increament_t(
-e_id int,
-salary int
+create table employee (
+	eno int primary key,
+    name varchar(25),
+    salary int
 );
 
+alter table employee modify name varchar(25);
 
-Declare
-Cursor c1 is select e_id,salary from employee where salary < (select avg(salary) from employee);
-me_no employee.e_id%type;
-msalary employee.salary%type;
-Begin
-open c1;
-if(c1%isopen) then
-loop
-fetch c1 into me_no,msalary;
-exit when c1%notfound;
-if(c1%found) then
-update employee set salary  = salary + (salary * 0.10) where e_id = me_no;
-select salary into msalary from employee where e_id = me_no;
-insert into increament_t values(me_no,msalary);
-end if;
-end loop;
-end if;
-end;
+insert into employee values (1,"Yash",10000),(2,"Tejas",40000),(3,"Prathmesh",15000),(4,"Satyam",10000);
+
+select * from employee;
+
+create table incr_salary(
+	name varchar(25),
+    old_salary int,
+    new_salary int
+);
+
+alter table incr_salary add eno int primary key;
+alter table incr_salary add foreign key (eno) references employee(eno);
+
+delimiter //
+
+create procedure increment()
+begin
+
+declare average int;
+declare ct int;
+declare done int;
+declare no int;
+declare name varchar(25);
+declare sal int;
+declare cur cursor for select eno,name,salary from employee;
+DECLARE CONTINUE HANDLER FOR NOT FOUND SET done = 1;
+open cur;
+select avg(salary) into average from employee;
+select  count(eno) into ct from employee;
+
+main : loop
+	if(done = 1) then leave main;
+    end if;
+	fetch cur into no, name, sal;
+	set ct = ct-1;
+	if(sal<average) then
+		update employee modify set salary = sal + (sal*(0.1)) where eno = no;
+		if(exists (select eno from incr_salary where eno = no)) then
+			update incr_salary modify set new_salary = sal + (sal*(0.1)) where eno = no;
+		else insert into incr_salary (eno,name,old_salary,new_salary) values (no,name,sal,sal + (sal*(0.1)));
+        end if;
+	elseif(ct=0) then
+		leave main;
+	end if;
+
+end loop main; 
+
+select "Records updated" as "Message";
+
+close cur;
+end //
+
+
+drop procedure increment;
+
+update employee modify set salary = salary +30000 where eno =3;
+
+select * from employee;
+select * from incr_salary;
+call increment();
 
 -------------------------------------------------------------------------------------------------------------------------------------------------------------------
 c)Write PL/SQL block using explicit cursor for following requirements: College has decided to mark all those students detained (D) who are having attendance
