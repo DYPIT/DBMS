@@ -1225,7 +1225,7 @@ less than 75%. Whenever such update takes place, a record for the same is mainta
 status varchar(1))
 ********Code**********
 
-create table stud1(roll_no number(5),attendance number(5),status varchar(7));
+ create table stud1(roll_no int,attendance int,status varchar(7));
 
 insert into stud1 values(8,76,'');
 insert into stud1 values(2,74,'');
@@ -1234,16 +1234,20 @@ insert into stud1 values(4,73,'');
 insert into stud1 values(5,78,'');
 insert into stud1 values(6,72,'');
 
-declare
-cursor c1 is select   roll_no,attendance, from employee;
-roll stud1.roll_no%type;
-attend stud1.attendance%type;
+
+create table D_stud(roll int);
+Create procedure checkattendd()
 begin
+declare done int;
+declare roll int;
+declare attend int;
+declare  c1 cursor for select roll_no,attendance from stud1;
+DECLARE CONTINUE HANDLER FOR NOT FOUND SET done = 1;
 open c1;
-if(c1%isopen) then
-loop
+main : loop
+if(done = 1) then leave main;
+end if;
 fetch c1 into roll,attend;
-exit when c1%notfound;
 if(attend > 75) then
 update stud1 set status = 'ND' where roll_no = roll;
 else
@@ -1251,8 +1255,10 @@ update stud1 set status = 'D' where roll_no = roll;
 insert into D_stud values(roll);
 end if;
 end loop;
-end if;
 end;
+
+call checkattendd()//
+
 
 -------------------------------------------------------------------------------------------------------------------------------------------------------------------
 
@@ -1307,48 +1313,38 @@ b)Write a PL/SQL block of code using parameterized Cursor, that will merge the d
 in the table O_RollCall. If the data in the first table already exist in the second table then that data should be skipped. output:
 
 *******Code*********
-create table inactive_mstr(
-    acc_no int primary key,
-    status varchar(30));
+create table n_rollcall (roll int, name varchar(10));
+insert into n_rollcall values (2,'vishal'), (5,'pratik'), (6,'parth');
 
-insert into inactive_mstr values(101, 'active');
-insert into inactive_mstr values(102, 'inactive');
-insert into inactive_mstr values(103, 'inactive');
-insert into inactive_mstr values(104, 'active');
-insert into inactive_mstr values(105, 'inactive');
+create table o_rollcall (roll int, name varchar(10));
+insert into o_rollcall values (2,'vishal'), (4,'hettik'), (3,'kartik'), (1,'deepak'), (5,'pratik');
 
-
-
-create table new_active(
-    acc_no int primary key,
-    new_status varchar(30));
 
 delimiter $
-create procedure activate()
+create procedure p3(in r1 int)
 begin
-declare accno int;
-declare status2 varchar(30);
-declare exitcondition boolean;
-declare cur1 CURSOR for select acc_no, status from inactive_mstr;
-declare continue handler for not found set exitcondition = TRUE;
-open cur1;
-L1: LOOP
-fetch cur1 into accno, status2;
-if status2 = 'inactive' then
-insert into new_active values(accno, status2);
+declare r2 int;
+declare exit_loop boolean;
+declare c1 cursor for select roll from o_rollcall where roll>r1;
+declare continue handler for not found set exit_loop=true;
+open c1;
+loop1:loop
+fetch c1 into r2;
+if not exists(select * from n_rollcall where roll=r2)
+then
+insert into n_rollcall select * from o_rollcall where roll=r2;
 end if;
-update new_active set new_status = 'active';
-if exitcondition then
-leave L1;
+if exit_loop
+then
+close c1;
+leave loop1;
 end if;
-end LOOP;
-close cur1;
+end loop loop1;
 end;
+$
+call p3(2);
+select*from n_rollcall;
 
-call activate();
-
-
-select * from N_RollCall;
 
 -------------------------------------------------------------------------------------------------------------------------------------------------------------------
 c)Write the PL/SQL block for following requirements using parameterized Cursor: Consider table EMP(e_no, d_no, Salary), department wise average salary
@@ -1357,26 +1353,44 @@ should be inserted into new table dept_salary(d_no, Avg_salary)
 *******Code*********
 
 create table EMP(e_no int, d_no int, Salary int);
-create table dept_salary(d_no int, Avg_salary int);
+create table dept_salary(Avgsalary int,d_no int);
 
-CREATE or REPLACE PROCEDURE avgsal
-IS
-CURSOR department is
-select d_no,AVG(salary) as avgsal from emp
-group by d_no;
-BEGIN
-FOR data in department
-LOOP
-insert into dept_salary values(data.d_no,data.avgsal);
-end LOOP;
-end;
 
-call avgsal();
+insert values in emp table 
+
+
+delimiter //
+create procedure check_salary()
+begin
+declare temp_emp int;
+declare temp_dno int;
+declare temp_salary int;
+declare avg_salary int;
+declare temp_dno_dept_salary int;
+declare ec boolean;
+declare cur1 cursor for select avg(salary),dno from emp group
+by dno;
+declare continue handler for not found set ec=true;
+open cur1;
+l1:loop
+fetch cur1 into temp_salary,temp_dno;
+insert into dept_salary values(temp_salary,temp_dno);
+if ec then
+close cur1;
+leave l1;
+end if;
+end loop l1;
+end
+//
 
 -------------------------------------------------------------------------------------------------------------------------------------------------------------------
 18.Trigger a) Write a update, delete trigger on clientmstr table. The System should keep track of the records that ARE BEING updated or deleted. The old value of updated or deleted records should be added in audit_trade table.
 (separate implementation using both row and statement triggers).
 *******Code*********
+create table clientmstr(roll int);
+create table audit_trade(roll int);
+
+delimiter // 
 create  trigger storedata
 before delete
 on
@@ -1385,7 +1399,15 @@ for each row
 begin
 insert into  audit_trade values(old.c_id,c_name);
 end;
-/
+create  trigger storedata
+before delete
+on
+clientmstr
+for each row
+begin
+insert into  audit_trade values(old.c_id,c_name);
+end;
+//
 create  trigger storedata
 before update
 on
@@ -1394,7 +1416,7 @@ for each row
 begin
 insert into  audit_trade values(old.c_id,c_name);
 end;
-/
+//
 
 give  2-3 insert and update quries
 
@@ -1993,6 +2015,15 @@ db.teachers.aggregate([
 ... { $match: { state: { $in: ['state1', 'state2', 'state2'] } } }, 
 ... { $group: { _id: '$state', totalPopulation:{ $sum: '$population'} } }
 ... ]);
+
+      -----new------
+26. Using MapReduce in mongodb solve following queries on given below collection. 
+1. Import zip.json. 
+mongoimport --db sai --collection zip --file C:\Users\OMKAR\Desktop\zips.json
+2. Find total population in each state.
+db.zip.mapReduce( function() {emit(this.state,this.pop);}, function(key,value){return Array.sum(value)}, { query:{state:"MA"},out:"state_pop_totals"});
+
+db.state_pop_totals.find();
 
 
 --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
